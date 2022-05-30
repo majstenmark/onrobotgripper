@@ -38,16 +38,36 @@ class OnRobotGripper:
         table = pd.read_html(tablehtml)[0]
         return table.loc[2][1] == 'True'
     
-    def currentWidth(self):
+    def isBusy(self):
+        tablehtml = self.driver.find_element(by = By.CLASS_NAME, value = 'table.table-bordered.m-0.on-actual-values').get_attribute('outerHTML')
+        tablehtml = tablehtml.replace('<span class="status-dot-true">', '<span class="status-dot-true">True').replace('<span class="status-dot-false">', '<span class="status-dot-false">False')
+        table = pd.read_html(tablehtml)[0]
+
+        return table.loc[1][1] == 'True' or not self.attarget()
+    
+    def attarget(self):
+        return self.gripDetected() or abs(self.target - self.getposition()) < 1
+    
+    def getposition(self):
         
         current_width_element, stopbtn = self.driver.find_elements(by = By.CLASS_NAME, value = 'py-4')
         current_width = float(current_width_element.get_attribute('innerHTML').replace('Current width: ', '').replace('mm', ''))
         return current_width
     
-    def setCurrentWidth(self, width, force = 20, speed = 10):
+    def open(self, force = 20, speed = 10):
+        self.moveto(37, force, speed)
+    
+    def close(self, force = 20, speed = 10):
+        self.moveto(0, force, speed)
+    
+
+    def moveto(self, width, force = 20, speed = 10):
         assert 0 <= width <= 37
+        self.target = width
         cmd = f'http://{self.ip}/api/dc/twofg/grip_external/0/{width}/{force}/{speed}'
         r = requests.get(cmd)
+    
+
         
 def get_args():
     parser = argparse.ArgumentParser()
@@ -58,17 +78,7 @@ def get_args():
 def main():
     args = get_args()
     gripper = OnRobotGripper('192.168.1.1', args.username, args.password)
-    print(gripper.currentWidth())
-
-    gripper.setCurrentWidth(37)
-    time.sleep(2)
-    print(gripper.currentWidth())
-    gripper.setCurrentWidth(7)
-    time.sleep(2)
-    print(gripper.currentWidth())
     
-    
-    print(gripper.gripDetected())
     
 
 if __name__ == "__main__":
