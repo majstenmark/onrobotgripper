@@ -16,7 +16,7 @@ def main():
 
     gripper = OnRobotGripper('192.168.1.1', args.username, args.password)
     BUFFER = 1024
-    HOST = "192.168.1.163"
+    HOST = "192.168.1.5"
     address = HOST, 30000
     connected = False
     force = 20
@@ -41,7 +41,8 @@ def main():
         try:
             while True:
                 data = connection.recv(BUFFER) 
-                
+                checkgrip = False
+
                 if not data:
                     break
                 msg = data.decode('UTF-8')
@@ -55,8 +56,7 @@ def main():
 
                 if msg.lower() == 'close':  
                     gripper.close()
-                    if gripper.gripDetected():
-                        response = 'gripdetected'
+                    checkgrip = True
 
                 if msg.startswith('moveto'):
                     _, dists, forces, speeds = msg.split()
@@ -77,6 +77,10 @@ def main():
 
                 while gripper.isBusy():
                     print('Busy')
+                if checkgrip:
+                    if gripper.gripDetected():
+                        response = 'gripdetected'
+                        
                 
                 connection.sendall(str.encode(response + '\n'))
                 
